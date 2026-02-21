@@ -15,20 +15,16 @@ SAVED_FILE = "Updated_Customer_List.csv"
 # Function to load data
 @st.cache_data
 def load_data():
-    # Load previously saved data if available
     if os.path.exists(SAVED_FILE):
         df = pd.read_csv(SAVED_FILE)
     else:
-        # Otherwise load the original excel file
         df = pd.read_excel(ORIGINAL_FILE, engine='openpyxl')
         
-        # Create new columns if they don't exist
         if 'Visited' not in df.columns:
             df['Visited'] = False
         if 'New Remarks' not in df.columns:
             df['New Remarks'] = ""
             
-    # Convert Latitude and Longitude to numeric values for mapping
     if 'Latitude' in df.columns and 'Longitude' in df.columns:
         df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
         df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
@@ -40,21 +36,18 @@ df = load_data()
 # --- Sidebar Filters ---
 st.sidebar.header("🔍 Plan Your Visit")
 
-# District Filter
 if 'District' in df.columns:
     district_list = ["All"] + list(df['District'].dropna().unique())
     selected_district = st.sidebar.selectbox("Select District:", district_list)
 else:
     selected_district = "All"
 
-# Priority Filter
 if 'Priority' in df.columns:
     priority_list = ["All"] + list(df['Priority'].dropna().unique())
     selected_priority = st.sidebar.selectbox("Select Priority:", priority_list)
 else:
     selected_priority = "All"
 
-# Apply Filters
 filtered_df = df.copy()
 if selected_district != "All" and 'District' in filtered_df.columns:
     filtered_df = filtered_df[filtered_df['District'] == selected_district]
@@ -82,17 +75,14 @@ if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
     map_data = filtered_df.dropna(subset=['Latitude', 'Longitude'])
     
     if not map_data.empty:
-        # Center of the map
         center_lat = map_data['Latitude'].mean()
         center_lon = map_data['Longitude'].mean()
         
         m = folium.Map(location=[center_lat, center_lon], zoom_start=9)
         
-        # Adding markers
         for index, row in map_data.iterrows():
             marker_color = "green" if row['Visited'] else "red"
             
-            # Handling blank data
             survey_remarks = row.get('Survey Remarks', '')
             if pd.isna(survey_remarks): survey_remarks = "-"
             
@@ -105,7 +95,6 @@ if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
             total_l = row.get('Total_L', '0')
             if pd.isna(total_l): total_l = "0"
 
-            # Popup box details
             popup_text = f"""
             <div style="font-family: Arial; font-size: 14px; min-width: 250px;">
                 <b>🏢 Company:</b> {row['CD Name']}<br>
@@ -139,16 +128,16 @@ st.divider()
 # --- Visit Update and Remarks ---
 st.markdown("### 📝 Update Visit and Add Remarks")
 
-# Editable Dataframe
+# यहाँ TextColumn को बदलकर साधारण Column कर दिया गया है ताकि एरर न आए
 edited_df = st.data_editor(
     filtered_df,
     column_config={
         "Visited": st.column_config.CheckboxColumn("Visited? (Tick)"),
         "New Remarks": st.column_config.TextColumn("Manager/Owner Remarks"),
-        "CD Name": st.column_config.TextColumn("Company Name", disabled=True),
-        "District": st.column_config.TextColumn("District", disabled=True),
-        "Priority": st.column_config.TextColumn("Priority", disabled=True),
-        "Mobile Number": st.column_config.TextColumn("Mobile Number", disabled=True)
+        "CD Name": st.column_config.Column("Company Name", disabled=True),
+        "District": st.column_config.Column("District", disabled=True),
+        "Priority": st.column_config.Column("Priority", disabled=True),
+        "Mobile Number": st.column_config.Column("Mobile Number", disabled=True)
     },
     disabled=["Custcd", "CD Name", "District", "Zone", "Ind Type", "Mobile Number", "Priority", "Survey Remarks", "Total_A", "Total_B", "Total_L"], 
     hide_index=True,
@@ -160,10 +149,7 @@ col_save, col_download = st.columns(2)
 
 with col_save:
     if st.button("💾 Save Changes", use_container_width=True):
-        # Error-free update method
         df.update(edited_df)
-            
-        # Save to CSV
         df.to_csv(SAVED_FILE, index=False)
         st.success("✅ Data saved successfully!")
         st.cache_data.clear()
