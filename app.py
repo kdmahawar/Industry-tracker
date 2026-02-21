@@ -15,16 +15,20 @@ SAVED_FILE = "Updated_Customer_List.csv"
 # Function to load data
 @st.cache_data
 def load_data():
+    # Load previously saved data if available
     if os.path.exists(SAVED_FILE):
         df = pd.read_csv(SAVED_FILE)
     else:
+        # Otherwise load the original excel file
         df = pd.read_excel(ORIGINAL_FILE, engine='openpyxl')
         
+        # Create new columns if they don't exist
         if 'Visited' not in df.columns:
             df['Visited'] = False
         if 'New Remarks' not in df.columns:
             df['New Remarks'] = ""
             
+    # Convert Latitude and Longitude to numeric values for mapping
     if 'Latitude' in df.columns and 'Longitude' in df.columns:
         df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
         df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
@@ -36,18 +40,21 @@ df = load_data()
 # --- Sidebar Filters ---
 st.sidebar.header("🔍 Plan Your Visit")
 
+# District Filter
 if 'District' in df.columns:
     district_list = ["All"] + list(df['District'].dropna().unique())
     selected_district = st.sidebar.selectbox("Select District:", district_list)
 else:
     selected_district = "All"
 
+# Priority Filter
 if 'Priority' in df.columns:
     priority_list = ["All"] + list(df['Priority'].dropna().unique())
     selected_priority = st.sidebar.selectbox("Select Priority:", priority_list)
 else:
     selected_priority = "All"
 
+# Apply Filters
 filtered_df = df.copy()
 if selected_district != "All" and 'District' in filtered_df.columns:
     filtered_df = filtered_df[filtered_df['District'] == selected_district]
@@ -75,11 +82,13 @@ if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
     map_data = filtered_df.dropna(subset=['Latitude', 'Longitude'])
     
     if not map_data.empty:
+        # Center of the map
         center_lat = map_data['Latitude'].mean()
         center_lon = map_data['Longitude'].mean()
         
         m = folium.Map(location=[center_lat, center_lon], zoom_start=9)
         
+        # Adding markers
         for index, row in map_data.iterrows():
             marker_color = "green" if row['Visited'] else "red"
             
@@ -130,6 +139,7 @@ st.divider()
 # --- Visit Update and Remarks ---
 st.markdown("### 📝 Update Visit and Add Remarks")
 
+# Editable Dataframe
 edited_df = st.data_editor(
     filtered_df,
     column_config={
@@ -150,17 +160,14 @@ col_save, col_download = st.columns(2)
 
 with col_save:
     if st.button("💾 Save Changes", use_container_width=True):
-        if 'Custcd' in df.columns:
-            df.set_index('Custcd', inplace=True)
-            edited_df_index = edited_df.set_index('Custcd')
-            df.update(edited_df_index)
-            df.reset_index(inplace=True)
-        else:
-            df.update(edited_df)
+        # Error-free update method
+        df.update(edited_df)
             
+        # Save to CSV
         df.to_csv(SAVED_FILE, index=False)
         st.success("✅ Data saved successfully!")
         st.cache_data.clear()
+        st.rerun()
 
 with col_download:
     csv = df.to_csv(index=False).encode('utf-8')
@@ -172,6 +179,6 @@ with col_download:
         use_container_width=True
     )
 
-# --- Footer Added Here ---
+# --- Footer ---
 st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray; font-size: 16px; font-weight: bold;'>Created by K D Mahawar</p>", unsafe_allow_html=True)
