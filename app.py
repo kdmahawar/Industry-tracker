@@ -4,7 +4,7 @@ import os
 import folium
 from streamlit_folium import st_folium
 
-# App ki setting
+# App settings
 st.set_page_config(page_title="Advance Industry Visit Tracker", layout="wide")
 
 st.title("🏭 Advance Industry Visit Tracker")
@@ -12,7 +12,7 @@ st.title("🏭 Advance Industry Visit Tracker")
 ORIGINAL_FILE = "Merged_T7_Customer_List.xlsx"
 SAVED_FILE = "Updated_Customer_List.csv" 
 
-# Data load karne ka function
+# Function to load data
 @st.cache_data
 def load_data():
     if os.path.exists(SAVED_FILE):
@@ -33,18 +33,18 @@ def load_data():
 
 df = load_data()
 
-# --- Sidebar me Filters ---
-st.sidebar.header("🔍 Visit ki Planning karein")
+# --- Sidebar Filters ---
+st.sidebar.header("🔍 Plan Your Visit")
 
 if 'District' in df.columns:
     district_list = ["All"] + list(df['District'].dropna().unique())
-    selected_district = st.sidebar.selectbox("District chunein:", district_list)
+    selected_district = st.sidebar.selectbox("Select District:", district_list)
 else:
     selected_district = "All"
 
 if 'Priority' in df.columns:
     priority_list = ["All"] + list(df['Priority'].dropna().unique())
-    selected_priority = st.sidebar.selectbox("Priority chunein:", priority_list)
+    selected_priority = st.sidebar.selectbox("Select Priority:", priority_list)
 else:
     selected_priority = "All"
 
@@ -54,8 +54,8 @@ if selected_district != "All" and 'District' in filtered_df.columns:
 if selected_priority != "All" and 'Priority' in filtered_df.columns:
     filtered_df = filtered_df[filtered_df['Priority'] == selected_priority]
 
-# --- Dashboard aur Stats ---
-st.markdown("### 📊 Aapki Progress")
+# --- Dashboard and Stats ---
+st.markdown("### 📊 Your Progress")
 total_industries = len(filtered_df)
 visited_count = int(filtered_df['Visited'].sum())
 pending_count = total_industries - visited_count
@@ -69,7 +69,7 @@ st.divider()
 
 # --- Advanced Map ---
 st.markdown("### 🗺️ Advanced Industry Location Map")
-st.caption("Map me kisi bhi pin par click karein aur company ki poori jankari dekhein. Green = Visited, Red = Pending.")
+st.caption("Click on any pin on the map to view complete company details. Green = Visited, Red = Pending.")
 
 if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
     map_data = filtered_df.dropna(subset=['Latitude', 'Longitude'])
@@ -83,7 +83,7 @@ if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
         for index, row in map_data.iterrows():
             marker_color = "green" if row['Visited'] else "red"
             
-            # Blank data ko handle karne ke liye
+            # Handling blank data
             survey_remarks = row.get('Survey Remarks', '')
             if pd.isna(survey_remarks): survey_remarks = "-"
             
@@ -96,7 +96,7 @@ if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
             total_l = row.get('Total_L', '0')
             if pd.isna(total_l): total_l = "0"
 
-            # Popup box me details
+            # Popup box details
             popup_text = f"""
             <div style="font-family: Arial; font-size: 14px; min-width: 250px;">
                 <b>🏢 Company:</b> {row['CD Name']}<br>
@@ -121,19 +121,19 @@ if 'Latitude' in filtered_df.columns and 'Longitude' in filtered_df.columns:
         
         st_folium(m, width="100%", height=400, returned_objects=[])
     else:
-        st.info("Is filter ke liye location data available nahi hai.")
+        st.info("Location data is not available for this filter.")
 else:
-    st.info("Aapke data me location (Latitude/Longitude) nahi hai.")
+    st.info("Location (Latitude/Longitude) data is missing in your file.")
 
 st.divider()
 
-# --- Visit Update aur Remarks ---
-st.markdown("### 📝 Visit Update Karein aur Remarks Likhein")
+# --- Visit Update and Remarks ---
+st.markdown("### 📝 Update Visit and Add Remarks")
 
 edited_df = st.data_editor(
     filtered_df,
     column_config={
-        "Visited": st.column_config.CheckboxColumn("Visit Ho Gayi? (Tick)"),
+        "Visited": st.column_config.CheckboxColumn("Visited? (Tick)"),
         "New Remarks": st.column_config.TextColumn("Manager/Owner Remarks"),
         "CD Name": st.column_config.TextColumn("Company Name", disabled=True),
         "District": st.column_config.TextColumn("District", disabled=True),
@@ -145,7 +145,7 @@ edited_df = st.data_editor(
     use_container_width=True
 )
 
-# --- Save aur Download Buttons ---
+# --- Save and Download Buttons ---
 col_save, col_download = st.columns(2)
 
 with col_save:
@@ -159,7 +159,7 @@ with col_save:
             df.update(edited_df)
             
         df.to_csv(SAVED_FILE, index=False)
-        st.success("✅ Data successfully save ho gaya hai!")
+        st.success("✅ Data saved successfully!")
         st.cache_data.clear()
 
 with col_download:
